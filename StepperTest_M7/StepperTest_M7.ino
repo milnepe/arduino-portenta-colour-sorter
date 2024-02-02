@@ -15,15 +15,16 @@
 
 using namespace rtos;
 
-enum colours { INVALID,
-               WHITE,
+enum colours { WHITE,
                RED,
                YELLOW,
                GREEN,
                VIOLET,
-               ORANGE };
+               ORANGE,
+               INVALID };
 
-const char *colour[] = { "INVALID", "WHITE", "RED", "YELLOW", "GREEN", "VIOLET", "ORANGE" };
+const char *colour[] = { "WHITE", "RED", "YELLOW", "GREEN", "VIOLET", "ORANGE", "INVALID" };
+const int NUM_COLOURS = 7;
 const int MAX_MESSAGE_LENGTH = 8;
 char msgbuffer[MAX_MESSAGE_LENGTH];
 volatile boolean eject = false;
@@ -37,13 +38,13 @@ int setEjector(int a) {
 
 // Return index of given colour
 int getColourIdx(String colour_str) {
-  for (int idx = 0; idx < 7; idx++) {
+  for (int idx = 0; idx < NUM_COLOURS; idx++) {
     String index_colour(colour[idx]);
-    if (index_colour.equals(colour_str)) {
+    if (index_colour.equals(colour_str) && (idx < NUM_COLOURS - 1)) {
       return idx;
     }
   }
-  return 0;
+  return -1;
 }
 
 void setup() {
@@ -68,25 +69,30 @@ void loop() {
     }
     // Message received
     else {
-      digitalWrite(PD_5, HIGH);
       msgbuffer[msg_pos] = '\0';
       msg_pos = 0;  // Reset buffer
-      int colourIndex = getColourIdx(String(msgbuffer));
-      // Update M4 colour index
-      RPC.call("setColourIndex", colourIndex).as<int>();
-      Serial.print(colourIndex);
-      Serial.print(" ");
-      Serial.println(msgbuffer);
 
-      // Wait for ejection signal from M4
-      while (!eject)
-        ;
-      eject = false;
-      colourIndex = 0;
-      delay(600);
-      // Reset M4 colour index
-      RPC.call("setColourIndex", colourIndex).as<int>();
-      Serial.println("Ejected...");
+      int colourIndex = getColourIdx(String(msgbuffer));
+      if (colourIndex < 0) {
+        Serial.print("INVALID");
+      } else {
+        digitalWrite(PD_5, HIGH);
+        // Update M4 colour index
+        RPC.call("setColourIndex", colourIndex).as<int>();
+        Serial.print(colourIndex);
+        Serial.print(" ");
+        Serial.println(msgbuffer);
+
+        // Wait for ejection signal from M4
+        while (!eject)
+          ;
+        eject = false;
+        colourIndex = 0;
+        delay(600);
+        // Reset M4 colour index
+        RPC.call("setColourIndex", colourIndex).as<int>();
+        Serial.println("Ejected...");
+      }
     }
   }
 }
