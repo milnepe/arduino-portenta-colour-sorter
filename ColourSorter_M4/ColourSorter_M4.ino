@@ -62,7 +62,7 @@ int setColourIndex(int a) {
 // Move stepper by one index position
 void moveOne(int *posIndex, int positions, int steps) {
   for (int i = 0; i < steps; i++) {
-    digitalWrite(STP, HIGH);  // Trigger one step
+    digitalWrite(STP, HIGH);  // Trigger one microstep
     delay(1);
     digitalWrite(STP, LOW);  // Pull step pin low to trigger again
     delay(1);
@@ -87,13 +87,13 @@ void setup() {
   digitalWrite(EN, HIGH);   // Disable motor
   digitalWrite(MS1, HIGH);  // MS1 & MS2 control step resolution
   digitalWrite(MS2, HIGH);
-  digitalWrite(EN, LOW);          // Enable motor control
   digitalWrite(DIRECT, FORWARD);  // Set direction
 
   RPC.begin();
   RPC.bind("setColourIndex", setColourIndex);
   // Let everything initialise!
-  delay(1000);
+  delay(5000);
+  digitalWrite(EN, LOW);  // Enable motor control
 }
 
 void loop() {
