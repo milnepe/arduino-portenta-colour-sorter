@@ -54,7 +54,7 @@ int posIndex = 1;
 volatile int colourIndex = 0;
 
 // Called by M7 to set colour index
-int setVar(int a) {
+int setColourIndex(int a) {
   colourIndex = (int)a;
   return a;
 }
@@ -91,7 +91,7 @@ void setup() {
   digitalWrite(DIRECT, FORWARD);  // Set direction
 
   RPC.begin();
-  RPC.bind("setVar", setVar);
+  RPC.bind("setColourIndex", setColourIndex);
   // Let everything initialise!
   delay(1000);
 }
