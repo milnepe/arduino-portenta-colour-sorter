@@ -10,7 +10,10 @@
   License: GPL-3.0 License
 */
 
+#include "Arduino.h"
 #include "RPC.h"
+
+using namespace rtos;
 
 enum colours { INVALID,
                WHITE,
@@ -44,10 +47,10 @@ int getColourIdx(String colour_str) {
 }
 
 void setup() {
-  // pinMode(hatLed, OUTPUT);
   RPC.begin();
   RPC.bind("setEjector", setEjector);
   bootM4();
+  pinMode(PD_5, OUTPUT);  // HAT LED
   Serial.begin(115200);
   while (!Serial)
     ;
@@ -55,7 +58,7 @@ void setup() {
 }
 
 void loop() {
-  // digitalWrite(hatLed, LOW);
+  digitalWrite(PD_5, LOW);
   while (Serial.available() > 0) {
     static unsigned int msg_pos = 0;
     char inByte = Serial.read();
@@ -65,45 +68,25 @@ void loop() {
     }
     // Message received
     else {
-      // digitalWrite(hatLed, HIGH);
+      digitalWrite(PD_5, HIGH);
       msgbuffer[msg_pos] = '\0';
       msg_pos = 0;  // Reset buffer
       int colourIndex = getColourIdx(String(msgbuffer));
       // Update M4 colour index
-      RPC.call("setVar", colourIndex).as<int>();
+      RPC.call("setColourIndex", colourIndex).as<int>();
       Serial.print(colourIndex);
       Serial.print(" ");
       Serial.println(msgbuffer);
 
       // Wait for ejection signal from M4
       while (!eject)
-        ;  // Wait for ejector signal
+        ;
       eject = false;
       colourIndex = 0;
       delay(600);
       // Reset M4 colour index
-      RPC.call("setVar", colourIndex).as<int>();
+      RPC.call("setColourIndex", colourIndex).as<int>();
+      Serial.println("Ejected...");
     }
   }
-  /*
-  readSensor();
-  colours sample = identifySample();
-  if (sample == WHITE) {
-    eject = true;
-  } else {
-    colourIndex = (int)sample;
-  }
-  Serial.println("Colour: " + String(colour[colourIndex]));
-  // Update M4 colour index
-  RPC.call("setVar", colourIndex).as<int>();
-
-  // Wait for ejection signal from M4
-  while (!eject) delay(5);
-
-  eject = false;
-  colourIndex = 0;
-  delay(600);
-  // Reset M4 colour index
-  RPC.call("setVar", colourIndex).as<int>();
-*/
 }
