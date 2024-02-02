@@ -14,14 +14,17 @@
   License: GPL-3.0 License
 */
 
-#include "RPC_internal.h"
+#include "Arduino.h"
+#include "RPC.h"
+
+using namespace rtos;
 
 // EasyDriver pins
-const int STP = 2;  // STP connected to D2
-const int DR = 3;   // DIR connected to D3
-const int MS1 = 4;  // MS1 connected to D4
-const int MS2 = 5;  // MS2 connected to D5
-const int EN = 6;   // EN connected to D6
+const int STP = D2;     // STP connected to D2
+const int DIRECT = D3;  // DIR connected to D3
+const int MS1 = D4;     // MS1 connected to D4
+const int MS2 = D5;     // MS2 connected to D5
+const int EN = D6;      // EN connected to D6
 
 // Micro-step resolution
 const int FULL = 1;
@@ -30,8 +33,8 @@ const int QUATER = 4;
 const int EIGTH = 8;
 
 // Directions
-const int REVERSE = HIGH; // Reverse rotation
-const int FORWARD = LOW;  // Forwards rotation
+const int REVERSE = HIGH;  // Reverse rotation
+const int FORWARD = LOW;   // Forwards rotation
 
 const int POSITIONS = 5;  // n platter positions
 // Number of micro-steps to move one carousel position
@@ -44,62 +47,61 @@ const int MICROSTEPS = 200 * EIGTH / POSITIONS;
 */
 const int DWELL = 200;  // Dwell time in ms
 
-int idx = 1; // Index
-int colourIndex = 0;
+// Position index - offsetting this to Colour Index
+// causes startup rotation
+int posIndex = 1;
+// Colour index set to zero maintains rotation
+volatile int colourIndex = 0;
 
-// Called my M7 to set colour index
+// Called by M7 to set colour index
 int setVar(int a) {
   colourIndex = (int)a;
   return a;
 }
 
 // Move stepper by one index position
-void moveOne(int *idx, int positions, int steps, int direction) {
-  digitalWrite(DR, direction); // Set direction
-  delay(1);
-
-  for (int i = 0; i < steps; i++)
-  {
-    digitalWrite(STP, HIGH); // Trigger one step
+void moveOne(int *posIndex, int positions, int steps) {
+  for (int i = 0; i < steps; i++) {
+    digitalWrite(STP, HIGH);  // Trigger one step
     delay(1);
-    digitalWrite(STP, LOW); // Pull step pin low to trigger again
+    digitalWrite(STP, LOW);  // Pull step pin low to trigger again
     delay(1);
   }
   // Update index
-  if (*idx == (positions)) {
-    *idx = 1;
-    digitalWrite(LEDB, LOW); // Led on
-  }
-  else {
-    (*idx)++;
-    digitalWrite(LEDB, HIGH); // Led off
+  if (*posIndex == positions) {
+    *posIndex = 1;
+    digitalWrite(LEDB, LOW);  // Led on
+  } else {
+    (*posIndex)++;
+    digitalWrite(LEDB, HIGH);  // Led off
   }
 }
 
 void setup() {
   pinMode(LEDB, OUTPUT);
   pinMode(STP, OUTPUT);
-  pinMode(DR, OUTPUT);
+  pinMode(DIRECT, OUTPUT);
   pinMode(MS1, OUTPUT);
   pinMode(MS2, OUTPUT);
   pinMode(EN, OUTPUT);
-  digitalWrite(EN, HIGH); // Disable motor
-  digitalWrite(MS1, HIGH); // MS1 & MS2 control step resolution
+  digitalWrite(EN, HIGH);   // Disable motor
+  digitalWrite(MS1, HIGH);  // MS1 & MS2 control step resolution
   digitalWrite(MS2, HIGH);
-  digitalWrite(EN, LOW); // Enable motor control
+  digitalWrite(EN, LOW);          // Enable motor control
+  digitalWrite(DIRECT, FORWARD);  // Set direction
 
-  RPC1.begin();
-  RPC1.bind("setVar", setVar);
+  RPC.begin();
+  RPC.bind("setVar", setVar);
   // Let everything initialise!
   delay(1000);
 }
 
 void loop() {
-  // Check if stepper index is at correct position to receive counter
-  if (idx == colourIndex) {
+  // Check stepper is at correct position to receive counter
+  if (posIndex == colourIndex) {
     // Signal to M7 to eject counter
-    RPC1.call("setEjector", 1).as<int>();
+    RPC.call("setEjector", 1).as<int>();
     delay(DWELL);
   }
-  moveOne(&idx, POSITIONS, MICROSTEPS, FORWARD);
+  moveOne(&posIndex, POSITIONS, MICROSTEPS);
 }
