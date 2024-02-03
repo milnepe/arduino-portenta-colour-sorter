@@ -10,7 +10,7 @@
   counter, the carousel stops for a moment under the ejector. At this point
   the M4 signals to the M7 to eject the counter via RPC.
   
-  Copywrite 2020 Peter Milne
+  Copywrite 2023 Peter Milne
   License: GPL-3.0 License
 */
 
@@ -55,7 +55,9 @@ volatile int colourIndex = 0;
 
 // Called by M7 to set colour index
 int setColourIndex(int a) {
-  colourIndex = (int)a;
+  if (a > 0) {  // Only set it for valid colours
+    colourIndex = (int)a;
+  }
   return a;
 }
 
@@ -64,10 +66,8 @@ void moveOne(int *posIndex, int positions, int steps) {
   for (int i = 0; i < steps; i++) {
     digitalWrite(STP, HIGH);  // Trigger one microstep
     delayMicroseconds(500);
-    //delay(1);
     digitalWrite(STP, LOW);  // Pull step pin low to trigger again
     delayMicroseconds(500);
-    //delay(1);
   }
   // Update index
   if (*posIndex == positions) {
@@ -100,10 +100,11 @@ void setup() {
 
 void loop() {
   // Check stepper is at correct position to receive counter
-  if (posIndex == colourIndex) {
+  if ((colourIndex > 0) && (posIndex == colourIndex)) {
+    colourIndex = 0;  // Reset so rotation continues
     // Signal to M7 to eject counter
     RPC.call("setEjector", 1).as<int>();
-    delay(DWELL);
+    delay(DWELL);  // Wait for ejection
   }
   moveOne(&posIndex, POSITIONS, MICROSTEPS);
 }

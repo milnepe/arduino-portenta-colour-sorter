@@ -15,14 +15,6 @@
 
 using namespace rtos;
 
-// enum colours { WHITE,
-//                RED,
-//                YELLOW,
-//                GREEN,
-//                VIOLET,
-//                ORANGE,
-//                INVALID };
-
 const char *colour[] = { "WHITE", "RED", "YELLOW", "GREEN", "VIOLET", "ORANGE" };
 const int NUM_COLOURS = 6;
 const int MAX_MESSAGE_LENGTH = 8;
@@ -72,24 +64,17 @@ void loop() {
       msg_pos = 0;  // Reset buffer
 
       int colourIndex = getColourIdx(String(msgbuffer));
-      if (colourIndex < 0) {
-        Serial.print("INVALID");
-      } else {
-        digitalWrite(PD_5, HIGH);
+      digitalWrite(PD_5, HIGH);
+      Serial.print(colourIndex);
+      Serial.print(" ");
+      Serial.println(msgbuffer);
+      if (colourIndex > 0) {
         // Update M4 colour index
         RPC.call("setColourIndex", colourIndex).as<int>();
-        Serial.print(colourIndex);
-        Serial.print(" ");
-        Serial.println(msgbuffer);
-
         // Wait for ejection signal from M4
         while (!eject)
           ;
         eject = false;
-        colourIndex = 0;
-        delay(600);
-        // Reset M4 colour index
-        RPC.call("setColourIndex", colourIndex).as<int>();
         Serial.println("Ejected...");
       }
     }
