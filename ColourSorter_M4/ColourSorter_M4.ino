@@ -63,9 +63,11 @@ int setColourIndex(int a) {
 void moveOne(int *posIndex, int positions, int steps) {
   for (int i = 0; i < steps; i++) {
     digitalWrite(STP, HIGH);  // Trigger one microstep
-    delay(1);
+    delayMicroseconds(500);
+    //delay(1);
     digitalWrite(STP, LOW);  // Pull step pin low to trigger again
-    delay(1);
+    delayMicroseconds(500);
+    //delay(1);
   }
   // Update index
   if (*posIndex == positions) {
