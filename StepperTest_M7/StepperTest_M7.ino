@@ -15,20 +15,19 @@
 
 using namespace rtos;
 
-enum colours { WHITE,
-               RED,
-               YELLOW,
-               GREEN,
-               VIOLET,
-               ORANGE,
-               INVALID };
+// enum colours { WHITE,
+//                RED,
+//                YELLOW,
+//                GREEN,
+//                VIOLET,
+//                ORANGE,
+//                INVALID };
 
-const char *colour[] = { "WHITE", "RED", "YELLOW", "GREEN", "VIOLET", "ORANGE", "INVALID" };
-const int NUM_COLOURS = 7;
+const char *colour[] = { "WHITE", "RED", "YELLOW", "GREEN", "VIOLET", "ORANGE" };
+const int NUM_COLOURS = 6;
 const int MAX_MESSAGE_LENGTH = 8;
 char msgbuffer[MAX_MESSAGE_LENGTH];
 volatile boolean eject = false;
-// const int hatLed = PD_5;
 
 // Called by M4 to signal ejection
 int setEjector(int a) {
@@ -40,7 +39,7 @@ int setEjector(int a) {
 int getColourIdx(String colour_str) {
   for (int idx = 0; idx < NUM_COLOURS; idx++) {
     String index_colour(colour[idx]);
-    if (index_colour.equals(colour_str) && (idx < NUM_COLOURS - 1)) {
+    if (index_colour.equals(colour_str)) {
       return idx;
     }
   }
