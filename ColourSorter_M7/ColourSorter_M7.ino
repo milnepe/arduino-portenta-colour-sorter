@@ -15,7 +15,11 @@
   M7 waits for the eject signal from M4 via RPC, at which point the servo moves
   the counter to the eject position and then returns to the loader position.
 
-  Copywrite 2020 Peter Milne
+  Startup:
+  Ejector must be positioned over the ejector hole
+  Carousel must have starting cup under ejector hole
+
+  Copywrite 2023 Peter Milne
   License: GPL-3.0 License
 */
 
@@ -30,9 +34,9 @@ enum colours { WHITE,
                GREEN,
                VIOLET,
                ORANGE };
-char *colour[] = { "WHITE", "RED", "YELLOW", "GREEN", "VIOLET", "ORANGE" };
-int colourIndex = 0;
-boolean eject = false;
+const char *colour[] = { "WHITE", "RED", "YELLOW", "GREEN", "VIOLET", "ORANGE" };
+// int colourIndex = 0;
+volatile boolean eject = false;
 
 const int MAX_COLOUR_DISTANCE = 500;
 uint16_t redSensor, greenSensor, blueSensor, clearSensor;  // RGB readings
@@ -80,9 +84,9 @@ void readSensor() {
   Serial.println(clearSensor, DEC);
 }
 
-// Identify the actual colour of sample based on previously calibrated RGB values
+// Identify sensor colour sample based on previously calibrated RGB values
 // held in the samples array
-colours identifySample() {
+colours getColourIndex() {
   int colourDistance = MAX_COLOUR_DISTANCE;
   int prevColourDistance = colourDistance;  // Initialise to MAX distance
   colours sample = WHITE;
@@ -134,23 +138,16 @@ void loop() {
   moveTo(SENSOR_POSITION);
   delay(600);
   readSensor();
-  colours sample = identifySample();
-  if (sample == WHITE) {
-    eject = true;
-  } else {
-    colourIndex = (int)sample;
-  }
+  int colourIndex = (int)getColourIndex();
   Serial.println("Colour: " + String(colour[colourIndex]));
-  // Update M4 colour index
-  RPC.call("RPC", colourIndex).as<int>();
-
-  // Wait for ejection signal from M4
-  while (!eject) delay(5);
-
-  moveTo(EJECTOR_POSITION);
-  eject = false;
-  colourIndex = 0;
-  delay(600);
-  // Reset M4 colour index
-  RPC.call("RPC", colourIndex).as<int>();
+  if (colourIndex > 0) {
+    // Update M4 colour index
+    RPC.call("setColourIndex", colourIndex).as<int>();
+    while (!eject)  // Wait for ejection signal from M4
+      ;
+    eject = false;
+    moveTo(EJECTOR_POSITION);
+    Serial.println("Ejected...");
+    delay(600);  // Allow servo to reach ejector
+  }
 }
