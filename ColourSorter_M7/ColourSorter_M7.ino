@@ -136,7 +136,7 @@ void loop() {
   delay(600);
 
   moveTo(SENSOR_POSITION);
-  delay(600);
+  delay(1000);
   readSensor();
   int colourIndex = (int)getColourIndex();
   Serial.println("Colour: " + String(colour[colourIndex]));
