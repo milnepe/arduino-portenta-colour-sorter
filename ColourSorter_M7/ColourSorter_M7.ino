@@ -28,6 +28,7 @@
 #include "Adafruit_TCS34725.h"
 #include <Adafruit_PWMServoDriver.h>
 
+const int NUM_SENSORS = 4;  // RGBW sensors
 enum colours { WHITE,
                RED,
                YELLOW,
@@ -42,16 +43,16 @@ const int MAX_COLOUR_DISTANCE = 500;
 uint16_t redSensor, greenSensor, blueSensor, clearSensor;  // RGB readings
 
 // Array of average RGB values
-const int SAMPLES[][4] = {
-  { 23, 22, 19, WHITE },
-  { 16, 19, 12, GREEN },
-  { 11, 8, 8, VIOLET },
-  { 19, 10, 9, RED },
-  { 24, 16, 12, ORANGE },
-  { 27, 22, 16, YELLOW }
+const int calibratedColours[][NUM_SENSORS + 1] = {
+  { 24, 23, 20, 66, WHITE },
+  { 18, 21, 14, 52, GREEN },
+  { 15, 14, 12, 41, VIOLET },
+  { 21, 17, 14, 51, RED },
+  { 27, 18, 15, 59, ORANGE },
+  { 30, 27, 18, 74, YELLOW }
 };
 // Number of samples in the array
-const byte samplesCount = sizeof(SAMPLES) / sizeof(SAMPLES[0]);
+const byte calibratedColoursCount = sizeof(calibratedColours) / sizeof(calibratedColours[0]);
 
 // Servo constants
 const int SERVO_FREQ = 50;  // For ~50 Hz servos
@@ -91,15 +92,15 @@ colours getColourIndex() {
   int prevColourDistance = colourDistance;  // Initialise to MAX distance
   colours sample = WHITE;
   // Check the colour distance of the sample against each of the colours in the calibated control samples
-  for (byte i = 0; i < samplesCount; i++) {
+  for (byte i = 0; i < calibratedColoursCount; i++) {
     Serial.print("Sample: ");
     Serial.print(i);
     Serial.print(" ");
-    colourDistance = getColourDistance(redSensor, greenSensor, blueSensor, SAMPLES[i][0], SAMPLES[i][1], SAMPLES[i][2]);
+    colourDistance = getColourDistance(redSensor, greenSensor, blueSensor, calibratedColours[i][0], calibratedColours[i][1], calibratedColours[i][2]);
     // If this sample has a lower colour distance than the previous sample from the control array, set it to the next
     // colour from the control array ( ie it is a better match )
     if (colourDistance < prevColourDistance) {
-      sample = (colours)SAMPLES[i][3];
+      sample = (colours)calibratedColours[i][4];
       prevColourDistance = colourDistance;
     }
     Serial.print(colourDistance);
@@ -129,6 +130,8 @@ void setup() {
   pwm.setOscillatorFrequency(27000000);
   pwm.setPWMFreq(SERVO_FREQ);
   delay(5000);
+  readSensor();  // Warm up sensor
+  delay(1000);
 }
 
 void loop() {
