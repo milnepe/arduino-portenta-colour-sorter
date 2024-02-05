@@ -29,7 +29,7 @@
 #include <Adafruit_PWMServoDriver.h>
 
 const int NUM_SAMPLES = 6;
-const int NUM_SENSORS = 4;
+const int NUM_SENSORS = 4;  // RGBW sensors
 uint16_t sample_buffer[NUM_SAMPLES][NUM_SENSORS];
 
 enum colours { WHITE,
@@ -39,14 +39,13 @@ enum colours { WHITE,
                VIOLET,
                ORANGE };
 const char *colour[] = { "WHITE", "RED", "YELLOW", "GREEN", "VIOLET", "ORANGE" };
-// int colourIndex = 0;
 volatile boolean eject = false;
 
 const int MAX_COLOUR_DISTANCE = 500;
 uint16_t redSensor, greenSensor, blueSensor, clearSensor;  // RGB readings
 
 // Array of average RGB values
-const int SAMPLES[][NUM_SENSORS] = {
+const int calibratedColours[][NUM_SENSORS + 1] = {
   { 24, 23, 20, 66, WHITE },
   { 18, 21, 14, 52, GREEN },
   { 15, 14, 12, 41, VIOLET },
@@ -55,7 +54,7 @@ const int SAMPLES[][NUM_SENSORS] = {
   { 30, 27, 18, 74, YELLOW }
 };
 // Number of samples in the array
-const byte samplesCount = sizeof(SAMPLES) / sizeof(SAMPLES[0]);
+const byte calibratedColoursCount = sizeof(calibratedColours) / sizeof(calibratedColours[0]);
 
 // Servo constants
 const int SERVO_FREQ = 50;  // For ~50 Hz servos
@@ -111,16 +110,16 @@ colours getColourIndex() {
   int colourDistance = MAX_COLOUR_DISTANCE;
   int prevColourDistance = colourDistance;  // Initialise to MAX distance
   colours sample = WHITE;
-  // Check the colour distance of the sample against each of the colours in the calibated control samples
-  for (byte i = 0; i < samplesCount; i++) {
+  // Check the colour distance of the sample against each of the colours in the calibrated control samples
+  for (byte i = 0; i < calibratedColoursCount; i++) {
     Serial.print("Sample: ");
     Serial.print(i);
     Serial.print(" ");
-    colourDistance = getColourDistance(redSensor, greenSensor, blueSensor, SAMPLES[i][0], SAMPLES[i][1], SAMPLES[i][2]);
+    colourDistance = getColourDistance(redSensor, greenSensor, blueSensor, calibratedColours[i][0], calibratedColours[i][1], calibratedColours[i][2]);
     // If this sample has a lower colour distance than the previous sample from the control array, set it to the next
     // colour from the control array ( ie it is a better match )
     if (colourDistance < prevColourDistance) {
-      sample = (colours)SAMPLES[i][3];
+      sample = (colours)calibratedColours[i][3];
       prevColourDistance = colourDistance;
     }
     Serial.print(colourDistance);
@@ -152,6 +151,7 @@ void setup() {
   Serial.begin(115200);
   while (!Serial)
     ;
+  Serial.println(calibratedColoursCount);
   int i = 0;
   //for (int i = 0; i < NUM_SAMPLES; i++) {
   while (i < NUM_SAMPLES) {
@@ -185,18 +185,4 @@ void setup() {
   }
 }
 
-void loop() {
-  /*
-  int colourIndex = (int)getColourIndex();
-  Serial.println("Colour: " + String(colour[colourIndex]));
-  if (colourIndex > 0) {
-    // Update M4 colour index
-    RPC.call("setColourIndex", colourIndex).as<int>();
-    while (!eject)  // Wait for ejection signal from M4
-      ;
-    eject = false;
-    moveTo(EJECTOR_POSITION);
-    Serial.println("Ejected...");
-    delay(600);  // Allow servo to reach ejector
-  } */
-}
+void loop() {}
