@@ -119,7 +119,7 @@ colours getColourIndex() {
     // If this sample has a lower colour distance than the previous sample from the control array, set it to the next
     // colour from the control array ( ie it is a better match )
     if (colourDistance < prevColourDistance) {
-      sample = (colours)calibratedColours[i][3];
+      sample = (colours)calibratedColours[i][4];
       prevColourDistance = colourDistance;
     }
     Serial.print(colourDistance);
@@ -169,6 +169,8 @@ void setup() {
       printSensor();
       printBuffer(i);
       i++;
+      int colourIndex = (int)getColourIndex();
+      Serial.println("Colour: " + String(colour[colourIndex]));
     }
     eject = false;
     moveTo(EJECTOR_POSITION);
