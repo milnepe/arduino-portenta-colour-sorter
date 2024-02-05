@@ -77,15 +77,13 @@ int setEjector(int a) {
 
 // Print colour sensor RGB values
 void printSensor() {
-  if (redSensor && greenSensor && blueSensor && clearSensor) {
-    Serial.print(redSensor, DEC);
-    Serial.print(",");
-    Serial.print(greenSensor, DEC);
-    Serial.print(",");
-    Serial.print(blueSensor, DEC);
-    Serial.print(",");
-    Serial.println(clearSensor, DEC);
-  }
+  Serial.print(redSensor, DEC);
+  Serial.print(",");
+  Serial.print(greenSensor, DEC);
+  Serial.print(",");
+  Serial.print(blueSensor, DEC);
+  Serial.print(",");
+  Serial.println(clearSensor, DEC);
 }
 
 // Print colour sensor RGB values
@@ -153,7 +151,6 @@ void setup() {
     ;
   Serial.println(calibratedColoursCount);
   int i = 0;
-  //for (int i = 0; i < NUM_SAMPLES; i++) {
   while (i < NUM_SAMPLES) {
     moveTo(LOADER_POSITION);
     delay(600);
