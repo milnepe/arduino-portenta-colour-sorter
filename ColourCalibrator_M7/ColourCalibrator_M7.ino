@@ -28,7 +28,7 @@
 #include "Adafruit_TCS34725.h"
 #include <Adafruit_PWMServoDriver.h>
 
-const int NUM_SAMPLES = 6;
+const int NUM_SAMPLES = 50;
 const int NUM_SENSORS = 4;  // RGBW sensors
 uint16_t sample_buffer[NUM_SAMPLES][NUM_SENSORS];
 
@@ -47,11 +47,11 @@ uint16_t redSensor, greenSensor, blueSensor, clearSensor;  // RGB readings
 // Array of average RGB values
 const int calibratedColours[][NUM_SENSORS + 1] = {
   { 24, 23, 20, 66, WHITE },
-  { 18, 21, 14, 52, GREEN },
-  { 15, 14, 12, 41, VIOLET },
-  { 21, 17, 14, 51, RED },
-  { 27, 18, 15, 59, ORANGE },
-  { 30, 27, 18, 74, YELLOW }
+  { 16, 20, 12, 0, GREEN },
+  { 13, 10, 9, 0, VIOLET },
+  { 22, 11, 10, 0, RED },
+  { 31, 16, 13, 0, ORANGE },
+  { 37, 29, 18, 0, YELLOW }
 };
 // Number of samples in the array
 const byte calibratedColoursCount = sizeof(calibratedColours) / sizeof(calibratedColours[0]);
@@ -94,7 +94,7 @@ void printBuffer(int i) {
   Serial.print(",");
   Serial.print(sample_buffer[i][2], DEC);
   Serial.print(",");
-  Serial.println(sample_buffer[i][3], DEC);
+  Serial.print(sample_buffer[i][3], DEC);
 }
 
 // Read colour sensor RGB values
@@ -110,9 +110,9 @@ colours getColourIndex() {
   colours sample = WHITE;
   // Check the colour distance of the sample against each of the colours in the calibrated control samples
   for (byte i = 0; i < calibratedColoursCount; i++) {
-    Serial.print("Sample: ");
-    Serial.print(i);
-    Serial.print(" ");
+    // Serial.print("Sample: ");
+    // Serial.print(i);
+    // Serial.print(" ");
     colourDistance = getColourDistance(redSensor, greenSensor, blueSensor, calibratedColours[i][0], calibratedColours[i][1], calibratedColours[i][2]);
     // If this sample has a lower colour distance than the previous sample from the control array, set it to the next
     // colour from the control array ( ie it is a better match )
@@ -120,9 +120,9 @@ colours getColourIndex() {
       sample = (colours)calibratedColours[i][4];
       prevColourDistance = colourDistance;
     }
-    Serial.print(colourDistance);
-    Serial.print(",");
-    Serial.println(colour[sample]);
+    // Serial.print(colourDistance);
+    // Serial.print(",");
+    // Serial.println(colour[sample]);
   }
   return sample;
 }
@@ -137,6 +137,8 @@ void moveTo(int pos) {
   pwm.setPWM(SERVO_NUM, 0, pos);
 }
 
+bool start = false;
+
 void setup() {
   RPC.begin();
   RPC.bind("setEjector", setEjector);
@@ -149,39 +151,64 @@ void setup() {
   Serial.begin(115200);
   while (!Serial)
     ;
-  Serial.println(calibratedColoursCount);
-  int i = 0;
-  while (i < NUM_SAMPLES) {
+  delay(10000);
+  // Warm up sensor
+  for (int i = 0; i < 10; i++) {
+    readSensor();
+    delay(1000);
+    // Serial.println(calibratedColoursCount);
+  }
+  Serial.print("Starting...");
+}
+
+
+int num_samples = 0;
+
+void loop() {
+  while (Serial.available() > 0) {
+    char inByte = Serial.read();
+    if (inByte == '1') {
+      start = true;
+    } else if (inByte == '0') {
+      start = false;
+      int idx = 0;
+      for (int i = 0; i < NUM_SENSORS; i++) {
+        for (int j = 0; j < num_samples; j++) {
+          idx += sample_buffer[j][i];
+        }
+        Serial.print(idx / num_samples);
+        Serial.print(",");
+        idx = 0;
+      }
+      num_samples = 0;
+      start = true;
+    }
+  }
+  if (start) {
     moveTo(LOADER_POSITION);
     delay(600);
     moveTo(SENSOR_POSITION);
     delay(1000);
     readSensor();
-    delay(5);
-    if (redSensor && greenSensor && blueSensor && clearSensor) {
-      sample_buffer[i][0] = redSensor;
-      sample_buffer[i][1] = greenSensor;
-      sample_buffer[i][2] = blueSensor;
-      sample_buffer[i][3] = clearSensor;
-      printSensor();
-      printBuffer(i);
-      i++;
-      int colourIndex = (int)getColourIndex();
-      Serial.println("Colour: " + String(colour[colourIndex]));
+    int colourIndex = (int)getColourIndex();
+
+    if (colourIndex != WHITE) {
+      // if (redSensor && greenSensor && blueSensor && clearSensor) {
+      sample_buffer[num_samples][0] = redSensor;
+      sample_buffer[num_samples][1] = greenSensor;
+      sample_buffer[num_samples][2] = blueSensor;
+      //   sample_buffer[i][3] = clearSensor;
+      // printSensor();
+      printBuffer(num_samples);
+      Serial.print(" ");
+      Serial.println(String(colour[colourIndex]));
+      RPC.call("setColourIndex", colourIndex).as<int>();
+      while (!eject)  // Wait for ejection signal from M4
+        ;
+      eject = false;
+      moveTo(EJECTOR_POSITION);
+      delay(600);  // Allow servo to reach ejector
+      num_samples++;
     }
-    eject = false;
-    moveTo(EJECTOR_POSITION);
-    delay(600);  // Allow servo to reach ejector
-  }
-  int idx = 0;
-  for (int i = 0; i < NUM_SENSORS; i++) {
-    for (int j = 0; j < NUM_SAMPLES; j++) {
-      idx += sample_buffer[j][i];
-    }
-    Serial.print(idx / NUM_SAMPLES);
-    Serial.print(",");
-    idx = 0;
   }
 }
-
-void loop() {}
