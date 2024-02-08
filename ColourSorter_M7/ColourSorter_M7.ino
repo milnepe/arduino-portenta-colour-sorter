@@ -45,11 +45,11 @@ uint16_t redSensor, greenSensor, blueSensor, clearSensor;  // RGB readings
 // Array of average RGB values
 const int calibratedColours[][NUM_SENSORS + 1] = {
   { 24, 23, 20, 66, WHITE },
-  { 18, 21, 14, 52, GREEN },
-  { 15, 14, 12, 41, VIOLET },
-  { 21, 17, 14, 51, RED },
-  { 27, 18, 15, 59, ORANGE },
-  { 30, 27, 18, 74, YELLOW }
+  { 16, 20, 12, 0, GREEN },
+  { 13, 10, 9, 0, VIOLET },
+  { 22, 11, 10, 0, RED },
+  { 31, 16, 13, 0, ORANGE },
+  { 37, 29, 18, 0, YELLOW }
 };
 // Number of samples in the array
 const byte calibratedColoursCount = sizeof(calibratedColours) / sizeof(calibratedColours[0]);
@@ -129,9 +129,13 @@ void setup() {
   pwm.begin();
   pwm.setOscillatorFrequency(27000000);
   pwm.setPWMFreq(SERVO_FREQ);
-  delay(5000);
-  readSensor();  // Warm up sensor
-  delay(1000);
+  delay(10000);
+  // Warm up sensor
+  for (int i = 0; i < 10; i++) {
+    readSensor();
+    delay(1000);
+  }
+  Serial.println("Starting...");
 }
 
 void loop() {
