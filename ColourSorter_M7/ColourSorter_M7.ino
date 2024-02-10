@@ -76,12 +76,10 @@ void setup() {
   pwm.begin();
   pwm.setOscillatorFrequency(27000000);
   pwm.setPWMFreq(SERVO_FREQ);
-  delay(10000);
+  delay(5000);
   // Warm up sensor
-  for (int i = 0; i < 10; i++) {
-    readSensor();
-    delay(1000);
-  }
+  readSensor();
+  delay(1000);
   Serial.println("Starting...");
 }
 
@@ -92,7 +90,6 @@ void loop() {
   moveTo(SENSOR_POSITION);
   delay(1000);
   readSensor();
-  delay(5);
   int colourIndex = (int)getColourIndex(redSensor, greenSensor, blueSensor);
   Serial.println("Colour: " + String(colour[colourIndex]));
   if (colourIndex > 0) {
