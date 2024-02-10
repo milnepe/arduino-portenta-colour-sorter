@@ -24,35 +24,12 @@
 */
 
 #include "RPC.h"
-#include <Wire.h>
 #include "Adafruit_TCS34725.h"
 #include <Adafruit_PWMServoDriver.h>
+#include "ColourUtils.h"
 
-const int NUM_SENSORS = 4;  // RGBW sensors
-enum colours { WHITE,
-               RED,
-               YELLOW,
-               GREEN,
-               VIOLET,
-               ORANGE };
-const char *colour[] = { "WHITE", "RED", "YELLOW", "GREEN", "VIOLET", "ORANGE" };
-// int colourIndex = 0;
 volatile boolean eject = false;
-
-const int MAX_COLOUR_DISTANCE = 500;
-uint16_t redSensor, greenSensor, blueSensor, clearSensor;  // RGB readings
-
-// Array of average RGB values
-const int calibratedColours[][NUM_SENSORS + 1] = {
-  { 24, 23, 20, 66, WHITE },
-  { 16, 20, 12, 0, GREEN },
-  { 13, 10, 9, 0, VIOLET },
-  { 22, 11, 10, 0, RED },
-  { 31, 16, 13, 0, ORANGE },
-  { 37, 29, 18, 0, YELLOW }
-};
-// Number of samples in the array
-const byte calibratedColoursCount = sizeof(calibratedColours) / sizeof(calibratedColours[0]);
+uint16_t redSensor, greenSensor, blueSensor, clearSensor;  // RGBC readings
 
 // Servo constants
 const int SERVO_FREQ = 50;  // For ~50 Hz servos
@@ -83,36 +60,6 @@ void readSensor() {
   Serial.print(blueSensor, DEC);
   Serial.print(",");
   Serial.println(clearSensor, DEC);
-}
-
-// Identify sensor colour sample based on previously calibrated RGB values
-// held in the samples array
-colours getColourIndex() {
-  int colourDistance = MAX_COLOUR_DISTANCE;
-  int prevColourDistance = colourDistance;  // Initialise to MAX distance
-  colours sample = WHITE;
-  // Check the colour distance of the sample against each of the colours in the calibated control samples
-  for (byte i = 0; i < calibratedColoursCount; i++) {
-    Serial.print("Sample: ");
-    Serial.print(i);
-    Serial.print(" ");
-    colourDistance = getColourDistance(redSensor, greenSensor, blueSensor, calibratedColours[i][0], calibratedColours[i][1], calibratedColours[i][2]);
-    // If this sample has a lower colour distance than the previous sample from the control array, set it to the next
-    // colour from the control array ( ie it is a better match )
-    if (colourDistance < prevColourDistance) {
-      sample = (colours)calibratedColours[i][4];
-      prevColourDistance = colourDistance;
-    }
-    Serial.print(colourDistance);
-    Serial.print(",");
-    Serial.println(colour[sample]);
-  }
-  return sample;
-}
-
-// Calculate Euclid's colour distance between two RGB colours
-float getColourDistance(int redSensor, int greenSensor, int blueSensor, int redSample, int greenSample, int blueSample) {
-  return sqrt(pow(redSensor - redSample, 2) + pow(greenSensor - greenSample, 2) + pow(blueSensor - blueSample, 2));
 }
 
 // Move servo to given position
@@ -146,7 +93,7 @@ void loop() {
   delay(1000);
   readSensor();
   delay(5);
-  int colourIndex = (int)getColourIndex();
+  int colourIndex = (int)getColourIndex(redSensor, greenSensor, blueSensor);
   Serial.println("Colour: " + String(colour[colourIndex]));
   if (colourIndex > 0) {
     // Update M4 colour index
